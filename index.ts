@@ -1,9 +1,10 @@
 import fs from "fs";
-import * as ethers from "ethers";
+import { ethers, HDNodeWallet, Wallet } from "ethers";
 import {
   MY_SEED_PHRASE_WITH_MISSING_WORDS,
   MISSING_WORD_POSITION,
-} from "./put-your-seed-phrase-here";
+  CUSTOM_PROVIDER,
+} from "./config";
 
 console.log("Finding matches...");
 
@@ -11,7 +12,22 @@ const incompleteSeed = MY_SEED_PHRASE_WITH_MISSING_WORDS.split(" ");
 const incompleteSeedLength = incompleteSeed.length;
 
 const filePath = "./bip-39-wordlist.txt";
-const provider = ethers.getDefaultProvider("homestead");
+const provider = CUSTOM_PROVIDER
+  ? new ethers.JsonRpcProvider(
+      "https://eth-mainnet.g.alchemy.com/v2/8pPRfmheG1FLeL0b5cedbUFQIaoSkWxb"
+    )
+  : ethers.getDefaultProvider("homestead");
+const isSeedPhraseValid = (seedPhrase) => {
+  try {
+    const wallet = Wallet.fromPhrase(seedPhrase);
+    // If no error is thrown, the seed phrase is valid
+    return true;
+  } catch (error) {
+    //    console.error(error);
+    // If an error is thrown, the seed phrase is not valid
+    return false;
+  }
+};
 
 const main = async () => {
   try {
@@ -26,23 +42,25 @@ const main = async () => {
 
     for (let i = 0; i < seedWords.length; i++) {
       const seedWord = seedWords[i];
-      const potentialSeedPhrase = Array.from(incompleteSeed)
-        .splice(MISSING_WORD_POSITION, 0, seedWord)
-        .join(" ")
-        .trim();
+      const potentialSeedPhrase = incompleteSeed
+        .toSpliced(MISSING_WORD_POSITION, 0, seedWord)
+        .join(" ");
 
-      if (ethers.utils.isValidMnemonic(potentialSeedPhrase)) {
-        const walletNode = ethers.HDNode.fromMnemonic(potentialSeedPhrase);
+      if (isSeedPhraseValid(potentialSeedPhrase)) {
+        const walletNode = Wallet.fromPhrase(potentialSeedPhrase);
+        //    const path = walletNode.path;
+        //    console.log(path);
+        //    return;
         const wallets = [];
         for (let i = 0; i < 100; i++) {
-          const path = `m/44'/60'/0'/0/${i}`; // Ethereum default path
-          const derivedWallet = walletNode.derivePath(path);
+          //m/44'/60'/0'/0/0
+          const derivedWallet = walletNode.deriveChild(i);
           wallets.push(derivedWallet);
         }
         for (let i = 0; i < wallets.length; i++) {
           const wallet = wallets[i];
           const walletBalance = await provider.getBalance(wallet.address);
-          if (walletBalance.gt(ethers.constants.Zero)) {
+          if (walletBalance > BigInt("0")) {
             console.log(
               "Match found!",
               "Address: ",
@@ -54,7 +72,10 @@ const main = async () => {
         }
       }
     }
+    console.log("Search complete.");
   } catch (err) {
     console.error(err);
   }
 };
+
+main();
