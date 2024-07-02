@@ -14,7 +14,7 @@ const incompleteSeedLength = incompleteSeed.length;
 const filePath = "./bip-39-wordlist.txt";
 const provider = CUSTOM_PROVIDER
   ? new ethers.JsonRpcProvider(
-      "https://eth-mainnet.g.alchemy.com/v2/8pPRfmheG1FLeL0b5cedbUFQIaoSkWxb"
+    CUSTOM_PROVIDER 
     )
   : ethers.getDefaultProvider("homestead");
 const isSeedPhraseValid = (seedPhrase) => {
