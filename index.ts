@@ -1,5 +1,5 @@
 import fs from "fs";
-import { ethers, HDNodeWallet, Wallet } from "ethers";
+import { ethers, HDNodeWallet, Wallet, Mnemonic } from "ethers";
 import {
   MY_SEED_PHRASE_WITH_MISSING_WORDS,
   MISSING_WORD_POSITION,
@@ -26,6 +26,38 @@ const isSeedPhraseValid = (seedPhrase) => {
   }
 };
 
+const checkIfSeedPhraseHasTransactions = async (potentialSeedPhrase) => {
+  const mnemonic = Mnemonic.fromPhrase(potentialSeedPhrase);
+
+  // so ledger and metamask use different derivation methods for wallets from seed phrases. checking both.
+  // making the assumption here that the first wallet in a seed phrase has executed a transaction.
+  // these are the two standart derivation methods. any other wallet using non standard derivation methods please PR/create issue!!
+  // assuming the first wallet in the derivation method has performed a transaction.
+  // NOTE: in the case of the wallet being used as a vault, i.e., having performed zero transactions, this will not detect.
+  const ledgerFirstWalletPath = ethers.getAccountPath(0);
+  const metamaskFirstWalletPath = ethers.getIndexedAccountPath(0);
+
+  const ledgerWallet = HDNodeWallet.fromMnemonic(
+    mnemonic,
+    ledgerFirstWalletPath
+  );
+  const metamaskWallet = HDNodeWallet.fromMnemonic(
+    mnemonic,
+    metamaskFirstWalletPath
+  );
+
+  const ledgerTransactionCount = await provider.getTransactionCount(
+    ledgerWallet.address
+  );
+
+  const metamaskTransactionCount = await provider.getTransactionCount(
+    metamaskWallet.address
+  );
+
+  if (ledgerTransactionCount === 0 && metamaskTransactionCount === 0) return;
+  console.log("Match found!", "Seed Phrase: ", potentialSeedPhrase);
+};
+
 const main = async () => {
   try {
     const data = fs.readFileSync(filePath, "utf8");
@@ -43,27 +75,8 @@ const main = async () => {
         .toSpliced(MISSING_WORD_POSITION, 0, seedWord)
         .join(" ");
 
-      if (isSeedPhraseValid(potentialSeedPhrase)) {
-        const walletNode = Wallet.fromPhrase(potentialSeedPhrase);
-        const wallets = [];
-        for (let i = 0; i < 100; i++) {
-          const derivedWallet = walletNode.deriveChild(i);
-          wallets.push(derivedWallet);
-        }
-        for (let i = 0; i < wallets.length; i++) {
-          const wallet = wallets[i];
-          const walletBalance = await provider.getBalance(wallet.address);
-          if (walletBalance > BigInt("0")) {
-            console.log(
-              "Match found!",
-              "Address: ",
-              wallet.address,
-              "private key:",
-              wallet.privateKey
-            );
-          }
-        }
-      }
+      if (isSeedPhraseValid(potentialSeedPhrase))
+        await checkIfSeedPhraseHasTransactions(potentialSeedPhrase);
     }
     console.log("Search complete.");
   } catch (err) {
