@@ -46,15 +46,11 @@ const checkIfSeedPhraseHasTransactions = async (potentialSeedPhrase) => {
     metamaskFirstWalletPath
   );
 
-  const ledgerTransactionCount = await provider.getTransactionCount(
-    ledgerWallet.address
-  );
+  const ledgerBalance = await provider.getBalance(ledgerWallet.address);
 
-  const metamaskTransactionCount = await provider.getTransactionCount(
-    metamaskWallet.address
-  );
+  const metamaskBalance = await provider.getBalance(metamaskWallet.address);
 
-  if (ledgerTransactionCount === 0 && metamaskTransactionCount === 0) return;
+  if (ledgerBalance === 0 && metamaskBalance === 0) return;
   console.log("Match found!", "Seed Phrase: ", potentialSeedPhrase);
 };
 
