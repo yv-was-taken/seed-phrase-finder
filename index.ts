@@ -50,8 +50,9 @@ const checkIfSeedPhraseHasTransactions = async (potentialSeedPhrase) => {
 
   const metamaskBalance = await provider.getBalance(metamaskWallet.address);
 
-  if (ledgerBalance === 0 && metamaskBalance === 0) return;
+  if (ledgerBalance === 0n && metamaskBalance === 0n) return;
   console.log("Match found!", "Seed Phrase: ", potentialSeedPhrase);
+  console.log("balance", ledgerBalance, metamaskBalance);
 };
 
 const main = async () => {
