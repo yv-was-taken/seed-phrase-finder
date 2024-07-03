@@ -32,8 +32,8 @@ const checkIfSeedPhraseHasTransactions = async (potentialSeedPhrase) => {
   // so ledger and metamask use different derivation methods for wallets from seed phrases. checking both.
   // making the assumption here that the first wallet in a seed phrase has executed a transaction.
   // these are the two standart derivation methods. any other wallet using non standard derivation methods please PR/create issue!!
-  // assuming the first wallet in the derivation method has performed a transaction.
-  // NOTE: in the case of the wallet being used as a vault, i.e., having performed zero transactions, this will not detect.
+  // assuming the first wallet in the derivation method has an ETH Balance, or a tx history.
+  // NOTE: in the case of the wallet having zero ETH balance, or wallet having zero tx history, this will not detect
   const ledgerFirstWalletPath = ethers.getAccountPath(0);
   const metamaskFirstWalletPath = ethers.getIndexedAccountPath(0);
 
@@ -50,9 +50,21 @@ const checkIfSeedPhraseHasTransactions = async (potentialSeedPhrase) => {
 
   const metamaskBalance = await provider.getBalance(metamaskWallet.address);
 
-  if (ledgerBalance === 0n && metamaskBalance === 0n) return;
+  const ledgerTransactionCount = await provider.getTransactionCount(
+    ledgerWallet.address
+  );
+
+  const metamaskTransactionCount = await provider.getTransactionCount(
+    metamaskWallet.address
+  );
+
+  const walletHasZeroBalance = ledgerBalance === 0n && metamaskBalance === 0n;
+  const walletHasZeroTxHistory =
+    ledgerTransactionCount === 0 && metamaskTransactionCount === 0;
+
+  if (walletHasZeroBalance && walletHasZeroTxHistory) return;
+
   console.log("Match found!", "Seed Phrase: ", potentialSeedPhrase);
-  console.log("balance", ledgerBalance, metamaskBalance);
 };
 
 const main = async () => {
