@@ -1,5 +1,9 @@
 # seed-phrase-finder
 
+To setup:
+
+modify variables accordingly in config.ts
+
 To install dependencies:
 
 ```bash
